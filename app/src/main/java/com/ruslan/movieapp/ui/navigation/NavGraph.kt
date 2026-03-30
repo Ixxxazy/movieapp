@@ -2,9 +2,9 @@ package com.ruslan.movieapp.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -19,13 +19,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.ruslan.movieapp.ui.favorites.FavoritesScreen
+import com.ruslan.movieapp.ui.filters.FiltersScreen
 import com.ruslan.movieapp.ui.moviedetails.MovieDetailsScreen
 import com.ruslan.movieapp.ui.movieslist.MoviesListScreen
 
 sealed class Screen(val route: String, val title: String, val icon: @Composable () -> Unit) {
     object Movies : Screen("movies", "Фильмы", { Icon(Icons.Default.Home, contentDescription = "Фильмы") })
-    object Search : Screen("search", "Поиск", { Icon(Icons.Default.Search, contentDescription = "Поиск") })
     object Favorites : Screen("favorites", "Избранное", { Icon(Icons.Default.Favorite, contentDescription = "Избранное") })
+    object Filters : Screen("filters", "Фильтры", { Icon(Icons.Default.FilterList, contentDescription = "Фильтры") })
     object Profile : Screen("profile", "Профиль", { Icon(Icons.Default.Person, contentDescription = "Профиль") })
 }
 
@@ -41,26 +43,28 @@ fun MovieAppNavGraph(
             MoviesListScreen(
                 onMovieClick = { movieId ->
                     navController.navigate("movie_details/$movieId")
+                },
+                onOpenFilters = { navController.navigate(Screen.Filters.route) }
+            )
+        }
+        composable(Screen.Favorites.route) {
+            FavoritesScreen(
+                onMovieClick = { movieId ->
+                    navController.navigate("movie_details/$movieId")
                 }
             )
         }
-
+        composable(Screen.Filters.route) {
+            FiltersScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable("movie_details/{movieId}") { backStackEntry ->
-            // Правильное извлечение movieId
-            val movieIdStr = backStackEntry.arguments?.getString("movieId") ?: "0"
-            val movieId = movieIdStr.toIntOrNull() ?: 0
-
+            val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull() ?: 0
             MovieDetailsScreen(
                 movieId = movieId,
                 onBack = { navController.popBackStack() }
             )
-        }
-
-        composable(Screen.Search.route) {
-            Text("Поиск (в разработке)")
-        }
-        composable(Screen.Favorites.route) {
-            Text("Избранное (в разработке)")
         }
         composable(Screen.Profile.route) {
             Text("Профиль (в разработке)")
@@ -75,7 +79,6 @@ fun BottomNavigationBar(
 ) {
     val screens = listOf(
         Screen.Movies,
-        Screen.Search,
         Screen.Favorites,
         Screen.Profile
     )

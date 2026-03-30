@@ -28,13 +28,9 @@ fun MovieCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Формируем URL постера для Kinopoisk.dev
     val posterUrl = movie.posterPath?.let { path ->
-        if (path.startsWith("http")) {
-            path
-        } else {
-            "https://st.kp.yandex.net/images/film_iphone/iphone360_${movie.id}.jpg"
-        }
+        if (path.startsWith("http")) path
+        else "https://st.kp.yandex.net/images/film_iphone/iphone360_${movie.id}.jpg"
     } ?: "https://via.placeholder.com/80x120?text=No+Poster"
 
     Card(
