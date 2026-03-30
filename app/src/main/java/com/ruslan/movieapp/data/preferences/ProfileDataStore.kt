@@ -25,6 +25,7 @@ class ProfileDataStore @Inject constructor(
         private val POSITION_KEY = stringPreferencesKey("position")
         private val AVATAR_URI_KEY = stringPreferencesKey("avatar_uri")
         private val RESUME_URL_KEY = stringPreferencesKey("resume_url")
+        private val REMINDER_TIME_KEY = stringPreferencesKey("reminder_time")
     }
 
     val profileFlow: Flow<UserProfile> = dataStore.data.map { preferences ->
@@ -32,7 +33,8 @@ class ProfileDataStore @Inject constructor(
             fullName = preferences[FULL_NAME_KEY] ?: "",
             position = preferences[POSITION_KEY] ?: "",
             avatarUri = preferences[AVATAR_URI_KEY],
-            resumeUrl = preferences[RESUME_URL_KEY] ?: ""
+            resumeUrl = preferences[RESUME_URL_KEY] ?: "",
+            reminderTime = preferences[REMINDER_TIME_KEY] ?: ""
         )
     }
 
@@ -43,6 +45,7 @@ class ProfileDataStore @Inject constructor(
             profile.avatarUri?.let { preferences[AVATAR_URI_KEY] = it }
                 ?: preferences.remove(AVATAR_URI_KEY)
             preferences[RESUME_URL_KEY] = profile.resumeUrl
+            preferences[REMINDER_TIME_KEY] = profile.reminderTime
         }
     }
 

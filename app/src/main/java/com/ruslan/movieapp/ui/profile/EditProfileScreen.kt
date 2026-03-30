@@ -1,7 +1,9 @@
 package com.ruslan.movieapp.ui.profile
 
 import android.Manifest
+import android.app.TimePickerDialog
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +27,7 @@ import coil.request.ImageRequest
 import com.ruslan.movieapp.domain.model.UserProfile
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,19 +40,52 @@ fun EditProfileScreen(
 
     var fullName by remember { mutableStateOf(profile.fullName) }
     var position by remember { mutableStateOf(profile.position) }
-    var resumeUrl by remember { mutableStateOf(profile.resumeUrl) }
     var avatarUri by remember { mutableStateOf(profile.avatarUri) }
+    var resumeUrl by remember { mutableStateOf(profile.resumeUrl) }
+    var reminderTime by remember { mutableStateOf(profile.reminderTime) }
+    var timeError by remember { mutableStateOf<String?>(null) }
+
+    fun isValidTime(time: String): Boolean {
+        val timePattern = Regex("^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
+        return timePattern.matches(time)
+    }
 
     LaunchedEffect(profile) {
         fullName = profile.fullName
         position = profile.position
-        resumeUrl = profile.resumeUrl
         avatarUri = profile.avatarUri
+        resumeUrl = profile.resumeUrl
+        reminderTime = profile.reminderTime
+        timeError = if (reminderTime.isNotBlank() && !isValidTime(reminderTime)) "Неверный формат времени" else null
+        Log.d("EditProfile", "Loaded profile: reminderTime=$reminderTime")
     }
 
     val context = LocalContext.current
 
-    // Функция сохранения изображения в локальное хранилище
+    fun showTimePicker() {
+        val parts = reminderTime.split(":").let {
+            if (it.size == 2 && it[0].toIntOrNull() != null && it[1].toIntOrNull() != null) {
+                it[0].toInt() to it[1].toInt()
+            } else {
+                Calendar.getInstance().let { cal ->
+                    cal.get(Calendar.HOUR_OF_DAY) to cal.get(Calendar.MINUTE)
+                }
+            }
+        }
+        val picker = TimePickerDialog(
+            context,
+            { _, hour, minute ->
+                reminderTime = String.format("%02d:%02d", hour, minute)
+                timeError = if (isValidTime(reminderTime)) null else "Неверный формат времени"
+                Log.d("EditProfile", "Time selected: $reminderTime")
+            },
+            parts.first,
+            parts.second,
+            true
+        )
+        picker.show()
+    }
+
     fun saveImageToInternalStorage(uri: Uri): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
@@ -66,7 +103,6 @@ fun EditProfileScreen(
         }
     }
 
-    // Временный файл для фото с камеры
     val photoFile = remember { File(context.cacheDir, "avatar_${System.currentTimeMillis()}.jpg") }
     val photoUri = FileProvider.getUriForFile(
         context,
@@ -74,31 +110,24 @@ fun EditProfileScreen(
         photoFile
     )
 
-    // Launcher для галереи
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             val savedPath = saveImageToInternalStorage(it)
-            savedPath?.let { path ->
-                avatarUri = path
-            }
+            savedPath?.let { path -> avatarUri = path }
         }
     }
 
-    // Launcher для камеры
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success) {
             val savedPath = saveImageToInternalStorage(photoUri)
-            savedPath?.let { path ->
-                avatarUri = path
-            }
+            savedPath?.let { path -> avatarUri = path }
         }
     }
 
-    // Launcher для разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -120,6 +149,8 @@ fun EditProfileScreen(
         permissionLauncher.launch(permissions.toTypedArray())
     }
 
+    val isSaveEnabled = reminderTime.isBlank() || isValidTime(reminderTime)
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -130,17 +161,24 @@ fun EditProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        viewModel.saveProfile(
-                            UserProfile(
-                                fullName = fullName,
-                                position = position,
-                                avatarUri = avatarUri,
-                                resumeUrl = resumeUrl
-                            )
-                        )
-                        onSave()
-                    }) {
+                    IconButton(
+                        onClick = {
+                            if (isSaveEnabled) {
+                                Log.d("EditProfile", "Saving profile: reminderTime=$reminderTime")
+                                viewModel.saveProfile(
+                                    UserProfile(
+                                        fullName = fullName,
+                                        position = position,
+                                        avatarUri = avatarUri,
+                                        resumeUrl = resumeUrl,
+                                        reminderTime = reminderTime
+                                    )
+                                )
+                                onSave()
+                            }
+                        },
+                        enabled = isSaveEnabled
+                    ) {
                         Icon(Icons.Default.Check, contentDescription = "Сохранить")
                     }
                 }
@@ -154,15 +192,13 @@ fun EditProfileScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Аватар с выбором
+            // Аватар
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier.size(120.dp)
-                    ) {
+                    Box(modifier = Modifier.size(120.dp)) {
                         val painter = rememberAsyncImagePainter(
                             model = ImageRequest.Builder(context)
                                 .data(avatarUri?.let { File(it).takeIf { f -> f.exists() }?.absolutePath })
@@ -176,17 +212,12 @@ fun EditProfileScreen(
                             contentScale = ContentScale.Crop
                         )
                     }
-
                     Row(
                         modifier = Modifier.padding(top = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(onClick = { selectFromGallery() }) {
-                            Text("Галерея")
-                        }
-                        Button(onClick = { selectFromCamera() }) {
-                            Text("Камера")
-                        }
+                        Button(onClick = { selectFromGallery() }) { Text("Галерея") }
+                        Button(onClick = { selectFromCamera() }) { Text("Камера") }
                     }
                 }
             }
@@ -210,15 +241,41 @@ fun EditProfileScreen(
             OutlinedTextField(
                 value = resumeUrl,
                 onValueChange = { resumeUrl = it },
-                label = { Text("Ссылка на резюме (PDF)") },
+                label = { Text("Ссылка на резюме") },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("https://example.com/resume.pdf") }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Поле для времени с кнопкой выбора
+            OutlinedTextField(
+                value = reminderTime,
+                onValueChange = { newTime ->
+                    reminderTime = newTime
+                    timeError = if (newTime.isNotBlank() && !isValidTime(newTime)) "Неверный формат времени (HH:MM)" else null
+                },
+                label = { Text("Время любимой пары") },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("HH:MM") },
+                isError = timeError != null,
+                trailingIcon = {
+                    IconButton(onClick = { showTimePicker() }) {
+                        Icon(Icons.Default.Schedule, contentDescription = "Выбрать время")
+                    }
+                },
+                supportingText = {
+                    if (timeError != null) {
+                        Text(
+                            text = timeError!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        Text("Формат: 14:30")
+                    }
+                }
+            )
 
             Text(
-                text = "Подсказка: чтобы изменить данные, просто отредактируйте текст в полях выше. Пустое поле означает, что данные будут удалены.",
+                text = "Подсказка: в указанное время придет уведомление-напоминание о начале пары.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

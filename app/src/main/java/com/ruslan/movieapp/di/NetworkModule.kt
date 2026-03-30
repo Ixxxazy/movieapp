@@ -22,7 +22,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BASE_URL = "https://api.kinopoisk.dev/"
-    private const val API_KEY = "EEQ517M-CEXMF4J-G5AXQTC-Y0A7BF9"
+    private const val API_KEY = "VCX132M-222M4VJ-NGDMFMK-MEACCH7"
 
     @Provides
     @Singleton
