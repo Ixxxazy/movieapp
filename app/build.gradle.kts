@@ -104,4 +104,9 @@ dependencies {
 
     // Для скачивания файлов
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // Наши модули
+    implementation(project(":core:domain"))
+    implementation(project(":core:data"))
+    implementation(project(":feature:profile"))
 }

@@ -1,9 +1,8 @@
-package com.ruslan.movieapp.ui.profile
+package com.ruslan.movieapp.feature.profile
 
 import android.Manifest
 import android.app.TimePickerDialog
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -24,7 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
-import com.ruslan.movieapp.domain.model.UserProfile
+import com.ruslan.movieapp.core.domain.model.UserProfile
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Calendar
@@ -57,7 +56,6 @@ fun EditProfileScreen(
         resumeUrl = profile.resumeUrl
         reminderTime = profile.reminderTime
         timeError = if (reminderTime.isNotBlank() && !isValidTime(reminderTime)) "Неверный формат времени" else null
-        Log.d("EditProfile", "Loaded profile: reminderTime=$reminderTime")
     }
 
     val context = LocalContext.current
@@ -77,7 +75,6 @@ fun EditProfileScreen(
             { _, hour, minute ->
                 reminderTime = String.format("%02d:%02d", hour, minute)
                 timeError = if (isValidTime(reminderTime)) null else "Неверный формат времени"
-                Log.d("EditProfile", "Time selected: $reminderTime")
             },
             parts.first,
             parts.second,
@@ -164,7 +161,6 @@ fun EditProfileScreen(
                     IconButton(
                         onClick = {
                             if (isSaveEnabled) {
-                                Log.d("EditProfile", "Saving profile: reminderTime=$reminderTime")
                                 viewModel.saveProfile(
                                     UserProfile(
                                         fullName = fullName,

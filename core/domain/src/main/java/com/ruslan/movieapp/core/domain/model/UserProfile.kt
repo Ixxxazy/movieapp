@@ -1,4 +1,4 @@
-package com.ruslan.movieapp.domain.model
+package com.ruslan.movieapp.core.domain.model
 
 data class UserProfile(
     val fullName: String = "",
