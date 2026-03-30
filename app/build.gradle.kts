@@ -95,4 +95,13 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Для работы с файлами и URI
+    implementation("androidx.documentfile:documentfile:1.0.1")
+
+    // Для выбора изображений
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // Для скачивания файлов
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 }

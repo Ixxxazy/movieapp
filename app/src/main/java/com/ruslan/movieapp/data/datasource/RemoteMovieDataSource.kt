@@ -14,26 +14,40 @@ class RemoteMovieDataSource @Inject constructor(
         page: Int,
         filters: FilterPreferences
     ): List<Movie> {
+        Log.d("MovieFilters", "=== REMOTE DATA SOURCE ===")
         Log.d("MovieFilters", "Filters: genre=${filters.genre}, minRating=${filters.minRating}, year=${filters.year}")
 
+        // Запрашиваем фильмы без minRating в API (чтобы получить больше данных)
         val response = apiService.getMovies(
             page = page,
             limit = 20,
             genre = filters.genre.takeIf { it.isNotBlank() },
-            minRating = if (filters.minRating > 0) filters.minRating else null,
+            minRating = null,  // ← не передаём в API, фильтруем в коде
             year = if (filters.year > 0) filters.year else null
         )
 
         val allMovies = response.movies.map { MovieMapper.mapToDomain(it) }
+        Log.d("MovieFilters", "API returned ${allMovies.size} movies")
 
+        // Фильтруем по рейтингу в коде (>= minRating)
         val filteredByRating = if (filters.minRating > 0) {
             allMovies.filter { it.voteAverage >= filters.minRating }
         } else {
             allMovies
         }
+        Log.d("MovieFilters", "After rating filter (>= ${filters.minRating}): ${filteredByRating.size} movies")
 
-        Log.d("MovieFilters", "API returned ${allMovies.size} movies, after rating: ${filteredByRating.size}")
-        return filteredByRating
+        // Фильтруем по жанру в коде (если нужно)
+        val filteredByGenre = if (filters.genre.isNotBlank()) {
+            filteredByRating.filter { movie ->
+                movie.genres.any { genre -> genre.contains(filters.genre, ignoreCase = true) }
+            }
+        } else {
+            filteredByRating
+        }
+        Log.d("MovieFilters", "After genre filter: ${filteredByGenre.size} movies")
+
+        return filteredByGenre
     }
 
     suspend fun getMovieDetails(movieId: Int): Movie {

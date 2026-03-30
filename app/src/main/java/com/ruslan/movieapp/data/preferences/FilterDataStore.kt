@@ -1,86 +1,53 @@
-package com.ruslan.movieapp.di
+package com.ruslan.movieapp.data.preferences
 
-import com.ruslan.movieapp.data.api.MovieApiService
-import com.ruslan.movieapp.data.datasource.RemoteMovieDataSource
-import com.ruslan.movieapp.data.repository.MovieRepositoryImpl
-import com.ruslan.movieapp.domain.repository.MovieRepository
-import com.ruslan.movieapp.domain.usercase.GetMovieDetailsUseCase
-import com.ruslan.movieapp.domain.usercase.GetMoviesUseCase
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 import javax.inject.Singleton
 
-@Module
-@InstallIn(SingletonComponent::class)
-object NetworkModule {
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "filters")
 
-    private const val BASE_URL = "https://api.kinopoisk.dev/"
-    private const val API_KEY = "EEQ517M-CEXMF4J-G5AXQTC-Y0A7BF9"
+@Singleton
+class FilterDataStore @Inject constructor(
+    private val context: Context
+) {
+    private val dataStore = context.dataStore
 
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
-        val interceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+    companion object {
+        private val GENRE_KEY = stringPreferencesKey("genre")
+        private val MIN_RATING_KEY = floatPreferencesKey("min_rating")
+        private val YEAR_KEY = intPreferencesKey("year")
+    }
+
+    val filterFlow: Flow<FilterPreferences> = dataStore.data.map { preferences ->
+        FilterPreferences(
+            genre = preferences[GENRE_KEY] ?: "",
+            minRating = preferences[MIN_RATING_KEY] ?: 0f,
+            year = preferences[YEAR_KEY] ?: 0
+        )
+    }
+
+    suspend fun saveFilters(genre: String, minRating: Float, year: Int) {
+        dataStore.edit { preferences ->
+            preferences[GENRE_KEY] = genre
+            preferences[MIN_RATING_KEY] = minRating
+            preferences[YEAR_KEY] = year
         }
-        return OkHttpClient.Builder()
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("X-API-KEY", API_KEY)
-                    .addHeader("Accept", "application/json")
-                    .build()
-                chain.proceed(request)
-            }
-            .addInterceptor(interceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
     }
 
-    @Provides
-    @Singleton
-    fun provideRetrofit(client: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideApiService(retrofit: Retrofit): MovieApiService {
-        return retrofit.create(MovieApiService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideRemoteDataSource(apiService: MovieApiService): RemoteMovieDataSource {
-        return RemoteMovieDataSource(apiService)
-    }
-
-    @Provides
-    @Singleton
-    fun provideMovieRepository(remoteDataSource: RemoteMovieDataSource): MovieRepository {
-        return MovieRepositoryImpl(remoteDataSource)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGetMoviesUseCase(repository: MovieRepository): GetMoviesUseCase {
-        return GetMoviesUseCase(repository)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGetMovieDetailsUseCase(repository: MovieRepository): GetMovieDetailsUseCase {
-        return GetMovieDetailsUseCase(repository)
+    suspend fun clearFilters() {
+        dataStore.edit { preferences ->
+            preferences.remove(GENRE_KEY)
+            preferences.remove(MIN_RATING_KEY)
+            preferences.remove(YEAR_KEY)
+        }
     }
 }

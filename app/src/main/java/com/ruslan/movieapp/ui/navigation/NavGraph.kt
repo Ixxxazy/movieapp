@@ -23,12 +23,15 @@ import com.ruslan.movieapp.ui.favorites.FavoritesScreen
 import com.ruslan.movieapp.ui.filters.FiltersScreen
 import com.ruslan.movieapp.ui.moviedetails.MovieDetailsScreen
 import com.ruslan.movieapp.ui.movieslist.MoviesListScreen
+import com.ruslan.movieapp.ui.profile.EditProfileScreen
+import com.ruslan.movieapp.ui.profile.ProfileScreen
 
 sealed class Screen(val route: String, val title: String, val icon: @Composable () -> Unit) {
     object Movies : Screen("movies", "Фильмы", { Icon(Icons.Default.Home, contentDescription = "Фильмы") })
     object Favorites : Screen("favorites", "Избранное", { Icon(Icons.Default.Favorite, contentDescription = "Избранное") })
     object Filters : Screen("filters", "Фильтры", { Icon(Icons.Default.FilterList, contentDescription = "Фильтры") })
     object Profile : Screen("profile", "Профиль", { Icon(Icons.Default.Person, contentDescription = "Профиль") })
+    object EditProfile : Screen("edit_profile", "Редактирование", { /* иконка не используется в навигации */ })
 }
 
 @Composable
@@ -67,7 +70,15 @@ fun MovieAppNavGraph(
             )
         }
         composable(Screen.Profile.route) {
-            Text("Профиль (в разработке)")
+            ProfileScreen(
+                onEditProfile = { navController.navigate(Screen.EditProfile.route) }
+            )
+        }
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(
+                onBack = { navController.popBackStack() },
+                onSave = { navController.popBackStack() }
+            )
         }
     }
 }
