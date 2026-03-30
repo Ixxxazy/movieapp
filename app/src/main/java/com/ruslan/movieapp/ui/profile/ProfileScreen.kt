@@ -80,9 +80,24 @@ fun ProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Напоминание
+            if (profile.reminderTime.isNotBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Text(
+                        text = "⏰ Напоминание: ${profile.reminderTime}",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
-            // Кнопка "Резюме"
+            // Кнопка "Резюме" (открывает ссылку в браузере)
             if (profile.resumeUrl.isNotBlank()) {
                 Button(
                     onClick = {
