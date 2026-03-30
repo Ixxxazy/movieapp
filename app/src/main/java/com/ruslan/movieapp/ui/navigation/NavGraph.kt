@@ -1,19 +1,16 @@
 package com.ruslan.movieapp.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -47,22 +44,26 @@ fun MovieAppNavGraph(
                 }
             )
         }
+
         composable("movie_details/{movieId}") { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull() ?: 0
+            // Правильное извлечение movieId
+            val movieIdStr = backStackEntry.arguments?.getString("movieId") ?: "0"
+            val movieId = movieIdStr.toIntOrNull() ?: 0
+
             MovieDetailsScreen(
                 movieId = movieId,
                 onBack = { navController.popBackStack() }
             )
         }
-        // Заглушки для других экранов
+
         composable(Screen.Search.route) {
-            androidx.compose.material3.Text("Поиск (в разработке)")
+            Text("Поиск (в разработке)")
         }
         composable(Screen.Favorites.route) {
-            androidx.compose.material3.Text("Избранное (в разработке)")
+            Text("Избранное (в разработке)")
         }
         composable(Screen.Profile.route) {
-            androidx.compose.material3.Text("Профиль (в разработке)")
+            Text("Профиль (в разработке)")
         }
     }
 }

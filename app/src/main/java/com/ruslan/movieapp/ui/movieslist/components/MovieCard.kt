@@ -1,5 +1,6 @@
 package com.ruslan.movieapp.ui.movieslist.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,11 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.ruslan.movieapp.data.model.Movie
-import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Color as ComposeColor
+import com.ruslan.movieapp.domain.model.Movie
 
 @Composable
 fun MovieCard(
@@ -30,6 +28,15 @@ fun MovieCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Формируем URL постера для Kinopoisk.dev
+    val posterUrl = movie.posterPath?.let { path ->
+        if (path.startsWith("http")) {
+            path
+        } else {
+            "https://st.kp.yandex.net/images/film_iphone/iphone360_${movie.id}.jpg"
+        }
+    } ?: "https://via.placeholder.com/80x120?text=No+Poster"
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -44,19 +51,15 @@ fun MovieCard(
         Row(
             modifier = Modifier.padding(12.dp)
         ) {
-            // Постер (заглушка, так как нет реальных изображений)
-            androidx.compose.foundation.layout.Box(
+            AsyncImage(
+                model = posterUrl,
+                contentDescription = movie.title,
                 modifier = Modifier
                     .size(80.dp, 120.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFF2C2C2C)),
-                contentAlignment = androidx.compose.ui.Alignment.Center
-            ) {
-                Text(
-                    text = "🎬",
-                    fontSize = 32.sp
-                )
-            }
+                contentScale = ContentScale.Crop
+            )
 
             Column(
                 modifier = Modifier

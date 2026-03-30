@@ -14,7 +14,9 @@ import androidx.navigation.compose.rememberNavController
 import com.ruslan.movieapp.ui.navigation.BottomNavigationBar
 import com.ruslan.movieapp.ui.navigation.MovieAppNavGraph
 import com.ruslan.movieapp.ui.theme.MovieAppTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,14 +24,14 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MovieAppTheme {
-                MovieApp()
+                MovieAppScreen()
             }
         }
     }
 }
 
 @Composable
-fun MovieApp() {
+fun MovieAppScreen() {
     val navController = rememberNavController()
 
     Scaffold(
