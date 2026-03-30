@@ -1,6 +1,7 @@
 package com.ruslan.movieapp.data.repository
 
 import com.ruslan.movieapp.data.datasource.RemoteMovieDataSource
+import com.ruslan.movieapp.data.preferences.FilterPreferences
 import com.ruslan.movieapp.domain.model.Movie
 import com.ruslan.movieapp.domain.repository.MovieRepository
 import com.ruslan.movieapp.domain.usercase.Result
@@ -13,10 +14,10 @@ class MovieRepositoryImpl @Inject constructor(
     private val remoteDataSource: RemoteMovieDataSource
 ) : MovieRepository {
 
-    override fun getPopularMovies(page: Int): Flow<Result<List<Movie>>> = flow {
+    override fun getPopularMovies(page: Int, filters: FilterPreferences): Flow<Result<List<Movie>>> = flow {
         emit(Result.Loading)
         try {
-            val movies = remoteDataSource.getPopularMovies(page)
+            val movies = remoteDataSource.getPopularMovies(page, filters)
             emit(Result.Success(movies))
         } catch (e: IOException) {
             emit(Result.Error("Нет подключения к интернету"))

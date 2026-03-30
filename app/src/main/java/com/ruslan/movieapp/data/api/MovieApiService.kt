@@ -13,7 +13,10 @@ interface MovieApiService {
         @Query("limit") limit: Int = 20,
         @Query("sortField") sortField: String = "rating.kp",
         @Query("sortType") sortType: String = "-1",
-        @Query("notNullFields") notNullFields: String = "poster.url"
+        @Query("notNullFields") notNullFields: String = "poster.url",
+        @Query("genres.name") genre: String? = null,
+        @Query("rating.kp") minRating: Float? = null,
+        @Query("year") year: Int? = null
     ): MovieResponseDto
 
     @GET("v1.4/movie/{id}")

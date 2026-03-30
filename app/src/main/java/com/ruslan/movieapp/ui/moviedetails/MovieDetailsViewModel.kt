@@ -3,7 +3,9 @@ package com.ruslan.movieapp.ui.moviedetails
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ruslan.movieapp.data.local.FavoriteMovieEntity
 import com.ruslan.movieapp.domain.model.Movie
+import com.ruslan.movieapp.domain.repository.FavoriteRepository
 import com.ruslan.movieapp.domain.usercase.GetMovieDetailsUseCase
 import com.ruslan.movieapp.domain.usercase.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,77 +13,101 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MovieDetailsViewModel @Inject constructor(
     private val getMovieDetailsUseCase: GetMovieDetailsUseCase,
+    private val favoriteRepository: FavoriteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val movieId: Int = savedStateHandle.get<String>("movieId")?.toIntOrNull() ?: 0
 
-    private val _uiState = MutableStateFlow(MovieDetailsUiState())
-    val uiState: StateFlow<MovieDetailsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(MovieDetailsState())
+    val uiState: StateFlow<MovieDetailsState> = _uiState.asStateFlow()
 
     init {
         loadMovieDetails()
+        checkFavoriteStatus()
     }
 
-    fun loadMovieDetails() {
+    private fun loadMovieDetails() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-
-            getMovieDetailsUseCase(movieId)
-                .catch { exception ->
-                    val errorMessage = when (exception) {
-                        is java.net.UnknownHostException -> "Нет подключения к интернету"
-                        is java.net.SocketTimeoutException -> "Превышено время ожидания"
-                        else -> "Ошибка загрузки: ${exception.message}"
+            getMovieDetailsUseCase(movieId).catch { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }.collect { result ->
+                when (result) {
+                    is Result.Loading -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = true,
+                            error = null
+                        )
                     }
-                    _uiState.update {
-                        it.copy(
+                    is Result.Success -> {
+                        _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = errorMessage
+                            movie = result.data,
+                            error = null
+                        )
+                    }
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = result.message
                         )
                     }
                 }
-                .collect { result ->
-                    when (result) {
-                        is Result.Loading -> { }
-                        is Result.Success -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    movie = result.data,
-                                    error = null
-                                )
-                            }
-                        }
-                        is Result.Error -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    error = result.message
-                                )
-                            }
-                        }
-                    }
+            }
+        }
+    }
+
+    private fun checkFavoriteStatus() {
+        viewModelScope.launch {
+            val isFav = favoriteRepository.isFavorite(movieId)
+            _uiState.value = _uiState.value.copy(isFavorite = isFav)
+        }
+    }
+
+    fun toggleFavorite() {
+        viewModelScope.launch {
+            val current = uiState.value.isFavorite
+            if (current) {
+                favoriteRepository.removeFromFavorites(movieId)
+            } else {
+                val movie = uiState.value.movie
+                if (movie != null) {
+                    val entity = FavoriteMovieEntity(
+                        movieId = movie.id,
+                        title = movie.title,
+                        originalTitle = movie.originalTitle,
+                        overview = movie.overview,
+                        posterPath = movie.posterPath,
+                        backdropPath = movie.backdropPath,
+                        releaseDate = movie.releaseDate,
+                        voteAverage = movie.voteAverage,
+                        voteCount = movie.voteCount,
+                        genres = movie.genres
+                    )
+                    favoriteRepository.addToFavorites(entity)
                 }
+            }
+            _uiState.value = _uiState.value.copy(isFavorite = !current)
         }
     }
 
     fun retry() {
-        if (_uiState.value.error != null) {
-            loadMovieDetails()
-        }
+        loadMovieDetails()
     }
 }
 
-data class MovieDetailsUiState(
+data class MovieDetailsState(
     val isLoading: Boolean = false,
     val movie: Movie? = null,
-    val error: String? = null
+    val error: String? = null,
+    val isFavorite: Boolean = false
 )

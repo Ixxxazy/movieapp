@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -53,6 +54,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
 
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended:1.7.6")
+
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
@@ -81,4 +85,14 @@ dependencies {
 
     // ConstraintLayout Compose
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
+
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.1.0")
+
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    implementation("com.google.code.gson:gson:2.10.1")
 }

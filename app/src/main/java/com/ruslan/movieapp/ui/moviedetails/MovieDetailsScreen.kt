@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,8 +19,6 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.ruslan.movieapp.ui.moviedetails.MovieDetailsViewModel
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +40,15 @@ fun MovieDetailsScreen(
                             contentDescription = "Назад"
                         )
                     }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.toggleFavorite() }) {
+                        Icon(
+                            if (uiState.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Избранное",
+                            tint = if (uiState.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             )
         }
@@ -50,13 +59,11 @@ fun MovieDetailsScreen(
                 .padding(padding)
         ) {
             when {
-                // Состояние: загрузка
                 uiState.isLoading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                // Состояние: ошибка
                 uiState.error != null -> {
                     Column(
                         modifier = Modifier
@@ -77,16 +84,18 @@ fun MovieDetailsScreen(
                         }
                     }
                 }
-                // Состояние: фильм не найден
                 uiState.movie == null -> {
                     Text(
                         text = "Фильм не найден",
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                // Состояние: фильм загружен
                 else -> {
-                    MovieDetailsContent(movie = uiState.movie!!)
+                    MovieDetailsContent(
+                        movie = uiState.movie!!,
+                        isFavorite = uiState.isFavorite,
+                        onFavoriteClick = { viewModel.toggleFavorite() }
+                    )
                 }
             }
         }
@@ -94,14 +103,14 @@ fun MovieDetailsScreen(
 }
 
 @Composable
-private fun MovieDetailsContent(movie: com.ruslan.movieapp.domain.model.Movie) {
-    // Формируем URL постера для Kinopoisk.dev
+private fun MovieDetailsContent(
+    movie: com.ruslan.movieapp.domain.model.Movie,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit
+) {
     val posterUrl = movie.posterPath?.let { path ->
-        when {
-            path.startsWith("http") -> path
-            path.startsWith("/") -> "https://st.kp.yandex.net$path"
-            else -> "https://st.kp.yandex.net/images/film_iphone/iphone360_${movie.id}.jpg"
-        }
+        if (path.startsWith("http")) path
+        else "https://st.kp.yandex.net/images/film_iphone/iphone360_${movie.id}.jpg"
     } ?: "https://via.placeholder.com/300x450?text=No+Poster"
 
     Column(
@@ -119,7 +128,6 @@ private fun MovieDetailsContent(movie: com.ruslan.movieapp.domain.model.Movie) {
             contentScale = ContentScale.Crop
         )
 
-        // Остальной код (ConstraintLayout) остаётся без изменений
         ConstraintLayout(
             modifier = Modifier
                 .fillMaxWidth()

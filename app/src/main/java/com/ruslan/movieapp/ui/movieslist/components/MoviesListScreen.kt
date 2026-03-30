@@ -3,11 +3,12 @@ package com.ruslan.movieapp.ui.movieslist
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -18,35 +19,30 @@ import com.ruslan.movieapp.ui.movieslist.components.MovieCard
 @Composable
 fun MoviesListScreen(
     onMovieClick: (Int) -> Unit,
+    onOpenFilters: () -> Unit,
     viewModel: MoviesListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val listState = rememberLazyListState()
-
-    // Пагинация: загружаем больше при прокрутке к концу
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { lastVisibleIndex ->
-                if (lastVisibleIndex != null &&
-                    lastVisibleIndex >= uiState.movies.size - 3 &&
-                    !uiState.isLoading &&
-                    !uiState.isLoadingMore &&
-                    !uiState.isRefreshing) {
-                    viewModel.loadMore()
-                }
-            }
-    }
+    val showFilterBadge by viewModel.showFilterBadge.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Популярные фильмы") },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Обновить"
-                        )
+                    IconButton(onClick = onOpenFilters) {
+                        BadgedBox(
+                            badge = {
+                                if (showFilterBadge) {
+                                    Badge()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = "Фильтры"
+                            )
+                        }
                     }
                 }
             )
@@ -58,45 +54,36 @@ fun MoviesListScreen(
                 .padding(padding)
         ) {
             when {
-                // Состояние: первая загрузка
-                uiState.isLoading && uiState.movies.isEmpty() -> {
+                uiState.isLoading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                // Состояние: ошибка
-                uiState.error != null && uiState.movies.isEmpty() -> {
+                uiState.error != null -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "❌ ${uiState.error}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.retry() }) {
+                        Text(text = uiState.error ?: "Ошибка")
+                        Button(
+                            onClick = { viewModel.retry() },
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
                             Text("Повторить")
                         }
                     }
                 }
-                // Состояние: пустой список
                 uiState.movies.isEmpty() -> {
                     Text(
                         text = "Нет фильмов",
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                // Состояние: список загружен
                 else -> {
                     LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(uiState.movies) { movie ->
                             MovieCard(
@@ -104,31 +91,8 @@ fun MoviesListScreen(
                                 onClick = { onMovieClick(movie.id) }
                             )
                         }
-
-                        // Индикатор загрузки следующих страниц
-                        if (uiState.isLoadingMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        }
                     }
                 }
-            }
-
-            // Индикатор pull-to-refresh
-            if (uiState.isRefreshing) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 8.dp)
-                )
             }
         }
     }

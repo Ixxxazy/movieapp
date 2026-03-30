@@ -2,6 +2,9 @@ package com.ruslan.movieapp.ui.movieslist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ruslan.movieapp.data.cache.FilterBadgeCache
+import com.ruslan.movieapp.data.preferences.FilterDataStore
+import com.ruslan.movieapp.data.preferences.FilterPreferences
 import com.ruslan.movieapp.domain.model.Movie
 import com.ruslan.movieapp.domain.usercase.GetMoviesUseCase
 import com.ruslan.movieapp.domain.usercase.Result
@@ -10,125 +13,78 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MoviesListViewModel @Inject constructor(
-    private val getMoviesUseCase: GetMoviesUseCase
+    private val getMoviesUseCase: GetMoviesUseCase,
+    private val filterDataStore: FilterDataStore,
+    private val filterBadgeCache: FilterBadgeCache
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MoviesListUiState())
-    val uiState: StateFlow<MoviesListUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(MoviesListState())
+    val uiState: StateFlow<MoviesListState> = _uiState.asStateFlow()
 
-    private var currentPage = 1
-    private var isLoadingMore = false
-    private var hasMorePages = true
+    private val _showFilterBadge = MutableStateFlow(false)
+    val showFilterBadge: StateFlow<Boolean> = _showFilterBadge.asStateFlow()
 
     init {
-        loadMovies()
+        loadFilters()
     }
 
-    fun loadMovies(isRefresh: Boolean = false) {
-        if (isRefresh) {
-            currentPage = 1
-            hasMorePages = true
-            _uiState.update { it.copy(isRefreshing = true, error = null) }
-        } else if (_uiState.value.isLoading || isLoadingMore) {
-            return
-        }
-
+    private fun loadFilters() {
         viewModelScope.launch {
-            if (currentPage == 1 && !isRefresh) {
-                _uiState.update { it.copy(isLoading = true, error = null) }
-            } else if (!isRefresh) {
-                isLoadingMore = true
-                _uiState.update { it.copy(isLoadingMore = true) }
+            filterDataStore.filterFlow.collect { filters ->
+                _uiState.value = _uiState.value.copy(currentFilters = filters)
+                val hasActiveFilters = filters.genre.isNotBlank() || filters.minRating > 0f || filters.year > 0
+                _showFilterBadge.value = hasActiveFilters
+                loadMovies(filters)
             }
+        }
+    }
 
-            getMoviesUseCase(currentPage)
-                .catch { exception ->
-                    val errorMessage = when (exception) {
-                        is java.net.UnknownHostException -> "Нет подключения к интернету"
-                        is java.net.SocketTimeoutException -> "Превышено время ожидания"
-                        else -> "Ошибка загрузки: ${exception.message}"
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isLoadingMore = false,
-                            isRefreshing = false,
-                            error = errorMessage
+    fun loadMovies(filters: FilterPreferences = _uiState.value.currentFilters) {
+        viewModelScope.launch {
+            getMoviesUseCase(page = 1, filters = filters).catch { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }.collect { result ->
+                when (result) {
+                    is Result.Loading -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = true,
+                            error = null
                         )
                     }
-                    isLoadingMore = false
-                }
-                .collect { result ->
-                    when (result) {
-                        is Result.Loading -> { }
-                        is Result.Success -> {
-                            val newMovies = if (currentPage == 1) {
-                                result.data
-                            } else {
-                                _uiState.value.movies + result.data
-                            }
-
-                            _uiState.update {
-                                it.copy(
-                                    movies = newMovies,
-                                    isLoading = false,
-                                    isLoadingMore = false,
-                                    isRefreshing = false,
-                                    error = null
-                                )
-                            }
-
-                            hasMorePages = result.data.isNotEmpty()
-                            if (result.data.isNotEmpty()) {
-                                currentPage++
-                            }
-                            isLoadingMore = false
-                        }
-                        is Result.Error -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isLoadingMore = false,
-                                    isRefreshing = false,
-                                    error = result.message
-                                )
-                            }
-                            isLoadingMore = false
-                        }
+                    is Result.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            movies = result.data,
+                            error = null
+                        )
+                    }
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = result.message
+                        )
                     }
                 }
+            }
         }
     }
 
     fun retry() {
-        if (_uiState.value.error != null) {
-            currentPage = 1
-            hasMorePages = true
-            loadMovies()
-        }
-    }
-
-    fun loadMore() {
-        if (!_uiState.value.isLoading && !isLoadingMore && !_uiState.value.isRefreshing && hasMorePages) {
-            loadMovies()
-        }
-    }
-
-    fun refresh() {
-        loadMovies(isRefresh = true)
+        loadMovies()
     }
 }
 
-data class MoviesListUiState(
+data class MoviesListState(
     val isLoading: Boolean = false,
-    val isLoadingMore: Boolean = false,
-    val isRefreshing: Boolean = false,
     val movies: List<Movie> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val currentFilters: FilterPreferences = FilterPreferences()
 )
