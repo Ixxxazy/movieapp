@@ -1,4 +1,4 @@
-package com.ruslan.movieapp.data.preferences
+package com.ruslan.movieapp.core.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -6,16 +6,13 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ruslan.movieapp.domain.model.UserProfile
+import com.ruslan.movieapp.core.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "profile")
 
-@Singleton
-class ProfileDataStore @Inject constructor(
+class ProfileDataStore(
     private val context: Context
 ) {
     private val dataStore = context.dataStore
@@ -47,9 +44,5 @@ class ProfileDataStore @Inject constructor(
             preferences[RESUME_URL_KEY] = profile.resumeUrl
             preferences[REMINDER_TIME_KEY] = profile.reminderTime
         }
-    }
-
-    suspend fun clearProfile() {
-        dataStore.edit { it.clear() }
     }
 }

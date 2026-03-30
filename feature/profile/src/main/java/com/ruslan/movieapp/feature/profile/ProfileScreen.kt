@@ -1,4 +1,4 @@
-package com.ruslan.movieapp.ui.profile
+package com.ruslan.movieapp.feature.profile
 
 import android.content.Intent
 import android.net.Uri
@@ -17,7 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
-import com.ruslan.movieapp.domain.model.UserProfile
+import com.ruslan.movieapp.core.domain.model.UserProfile
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,9 +50,7 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Аватар
-            Box(
-                modifier = Modifier.size(120.dp)
-            ) {
+            Box(modifier = Modifier.size(120.dp)) {
                 val painter = rememberAsyncImagePainter(
                     model = ImageRequest.Builder(context)
                         .data(profile.avatarUri?.let { File(it).takeIf { f -> f.exists() }?.absolutePath })
@@ -67,20 +65,17 @@ fun ProfileScreen(
                 )
             }
 
-            // ФИО
             Text(
                 text = profile.fullName.ifEmpty { "Не указано" },
                 style = MaterialTheme.typography.headlineSmall
             )
 
-            // Должность
             Text(
                 text = profile.position.ifEmpty { "Должность не указана" },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Напоминание
             if (profile.reminderTime.isNotBlank()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -97,7 +92,6 @@ fun ProfileScreen(
                 }
             }
 
-            // Кнопка "Резюме" (открывает ссылку в браузере)
             if (profile.resumeUrl.isNotBlank()) {
                 Button(
                     onClick = {

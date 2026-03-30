@@ -19,12 +19,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.ruslan.movieapp.feature.profile.EditProfileScreen
+import com.ruslan.movieapp.feature.profile.ProfileScreen
 import com.ruslan.movieapp.ui.favorites.FavoritesScreen
 import com.ruslan.movieapp.ui.filters.FiltersScreen
 import com.ruslan.movieapp.ui.moviedetails.MovieDetailsScreen
 import com.ruslan.movieapp.ui.movieslist.MoviesListScreen
-import com.ruslan.movieapp.ui.profile.EditProfileScreen
-import com.ruslan.movieapp.ui.profile.ProfileScreen
 
 sealed class Screen(val route: String, val title: String, val icon: @Composable () -> Unit) {
     object Movies : Screen("movies", "Фильмы", { Icon(Icons.Default.Home, contentDescription = "Фильмы") })

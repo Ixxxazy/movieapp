@@ -1,7 +1,9 @@
-package com.ruslan.movieapp.di
+package com.ruslan.movieapp.core.data.di
 
 import android.content.Context
-import com.ruslan.movieapp.data.preferences.ProfileDataStore
+import com.ruslan.movieapp.core.data.preferences.ProfileDataStore
+import com.ruslan.movieapp.core.data.repository.ProfileRepositoryImpl
+import com.ruslan.movieapp.core.domain.repository.ProfileRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -11,11 +13,17 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object ProfileModule {
+object DataModule {
 
     @Provides
     @Singleton
     fun provideProfileDataStore(@ApplicationContext context: Context): ProfileDataStore {
         return ProfileDataStore(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideProfileRepository(dataStore: ProfileDataStore): ProfileRepository {
+        return ProfileRepositoryImpl(dataStore)
     }
 }
