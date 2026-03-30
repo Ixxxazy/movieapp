@@ -1,5 +1,6 @@
 package com.ruslan.movieapp.ui.movieslist
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruslan.movieapp.data.cache.FilterBadgeCache
@@ -36,6 +37,7 @@ class MoviesListViewModel @Inject constructor(
     private fun loadFilters() {
         viewModelScope.launch {
             filterDataStore.filterFlow.collect { filters ->
+                Log.d("MovieFilters", "Loaded filters from DataStore: $filters")
                 _uiState.value = _uiState.value.copy(currentFilters = filters)
                 val hasActiveFilters = filters.genre.isNotBlank() || filters.minRating > 0f || filters.year > 0
                 _showFilterBadge.value = hasActiveFilters
@@ -45,6 +47,7 @@ class MoviesListViewModel @Inject constructor(
     }
 
     fun loadMovies(filters: FilterPreferences = _uiState.value.currentFilters) {
+        Log.d("MovieFilters", "loadMovies called with filters: $filters")
         viewModelScope.launch {
             getMoviesUseCase(page = 1, filters = filters).catch { e ->
                 _uiState.value = _uiState.value.copy(

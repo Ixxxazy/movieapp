@@ -1,6 +1,7 @@
 package com.ruslan.movieapp.di
 
 import android.content.Context
+import com.ruslan.movieapp.data.cache.FilterBadgeCache
 import com.ruslan.movieapp.data.preferences.FilterDataStore
 import dagger.Module
 import dagger.Provides
@@ -11,11 +12,17 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object PreferencesModule {
+object DataModule {
 
     @Provides
     @Singleton
     fun provideFilterDataStore(@ApplicationContext context: Context): FilterDataStore {
         return FilterDataStore(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFilterBadgeCache(): FilterBadgeCache {
+        return FilterBadgeCache()
     }
 }
